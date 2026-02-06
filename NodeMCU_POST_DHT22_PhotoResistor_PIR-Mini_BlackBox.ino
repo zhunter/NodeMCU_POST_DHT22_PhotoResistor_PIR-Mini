@@ -34,8 +34,6 @@ unsigned long lastTime = millis() - timerDelay;
 
 X509List cert(cert_ISRG_Root_X1);
 
-float* ReadDHT();
-
 void setup() {
   dht.begin();
   Serial.begin(115200);
@@ -89,15 +87,18 @@ void setup() {
   Serial.print(digitalRead(D7));
   Serial.println("");
 
-  float dhtStartupResults[4];
-  ReadDHT(dhtStartupResults);
+  float humid = dht.readHumidity();
+  int humidNow = truncf(humid * 10) / 10;
 
   Serial.print("Humidity: ");
-  Serial.print(dhtStartupResults[1]);
+  Serial.print(humidNow);
   Serial.println("%");
 
+  float temp = dht.readTemperature();
+  int tempNow = ((temp-7) * 1.8) + 32;
+
   Serial.print("Temperature: ");
-  Serial.print(dhtStartupResults[3]);
+  Serial.print(tempNow);
   Serial.println("°F");
 
   Serial.println("= [ End Sensor Startup ]=============================");
@@ -118,22 +119,23 @@ void loop() {
   // Temp Every x Minutes
   if (millis() > lastTime + timerDelay) {
 
-    float dhtResults[4];
-    ReadDHT(dhtResults);
-
     if (WiFi.status() == WL_CONNECTED) {
       JSONVar myObject;
       String jsonString;
 
       myObject["sendorValue"] = WiFi.localIP().toString();
       myObject["sensorType"] = "Humidity Sensor";
-      myObject["sensorValue"] = dhtResults[1];
+      float humid = dht.readHumidity();
+      int humidNow = truncf(humid * 10) / 10;
+      myObject["sensorValue"] = humidNow;
       jsonString = JSON.stringify(myObject);
       httpPOSTRequest(serverName, jsonString);
 
       myObject["sendorValue"] = WiFi.localIP().toString();
       myObject["sensorType"] = "Temperature Sensor";
-      myObject["sensorValue"] = dhtResults[3];
+      float temp = dht.readTemperature();
+      int tempNow = ((temp-7) * 1.8) + 32;
+      myObject["sensorValue"] = tempNow;
       jsonString = JSON.stringify(myObject);
       httpPOSTRequest(serverName, jsonString);
 
@@ -183,18 +185,6 @@ void loop() {
       MotionLastTriggerTime = millis();
     }
   }
-}
-
-void ReadDHT(float (&dhtResults)[4]) {
-  // Read Humidity
-  float h = dht.readHumidity();
-  dhtResults[0] = h;
-  dhtResults[1] = truncf(h * 10) / 10;
-
-  // Read Temperature Fahrenheit
-  float t = dht.readTemperature();
-  dhtResults[2] = t;
-  dhtResults[3] = (t * 1.8) + 32;
 }
 
 // POST JSON Data to REST API
