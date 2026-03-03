@@ -95,7 +95,7 @@ void setup() {
   Serial.println("%");
 
   float temp = dht.readTemperature();
-  int tempNow = ((temp-7) * 1.8) + 32;
+  int tempNow = ((temp - 7) * 1.8) + 32;
 
   Serial.print("Temperature: ");
   Serial.print(tempNow);
@@ -106,45 +106,8 @@ void setup() {
 }
 
 void loop() {
-
+  // Monitor Photoresistor and alert for light change. 
   int photocell = digitalRead(D1);
-  int pir = digitalRead(D7);
-
-  if (pir) {
-    digitalWrite(D4, LOW);
-  } else {
-    digitalWrite(D4, HIGH);
-  }
-
-  // Temp Every x Minutes
-  if (millis() > lastTime + timerDelay) {
-
-    if (WiFi.status() == WL_CONNECTED) {
-      JSONVar myObject;
-      String jsonString;
-
-      myObject["sendorValue"] = WiFi.localIP().toString();
-      myObject["sensorType"] = "Humidity Sensor";
-      float humid = dht.readHumidity();
-      int humidNow = truncf(humid * 10) / 10;
-      myObject["sensorValue"] = humidNow;
-      jsonString = JSON.stringify(myObject);
-      httpPOSTRequest(serverName, jsonString);
-
-      myObject["sendorValue"] = WiFi.localIP().toString();
-      myObject["sensorType"] = "Temperature Sensor";
-      float temp = dht.readTemperature();
-      int tempNow = ((temp-7) * 1.8) + 32;
-      myObject["sensorValue"] = tempNow;
-      jsonString = JSON.stringify(myObject);
-      httpPOSTRequest(serverName, jsonString);
-
-    } else {
-      Serial.println("WiFi Disconnected");
-    }
-
-    lastTime = millis();
-  }
 
   if (LightSensorLastStatus != photocell) {
     if (WiFi.status() == WL_CONNECTED) {
@@ -162,6 +125,15 @@ void loop() {
     } else {
       Serial.println("WiFi Disconnected");
     }
+  }
+
+  // Monitor Passive Infrared (PIR) Motion Sensor and alert for motion change.
+  int pir = digitalRead(D7);
+
+  if (pir) {
+    digitalWrite(D4, LOW);
+  } else {
+    digitalWrite(D4, HIGH);
   }
 
   if (MotionSensorLastStatus != pir) {
@@ -184,6 +156,36 @@ void loop() {
 
       MotionLastTriggerTime = millis();
     }
+  }
+
+  // Temp Every x Minutes
+  if (millis() > lastTime + timerDelay) {
+
+    if (WiFi.status() == WL_CONNECTED) {
+      JSONVar myObject;
+      String jsonString;
+
+      myObject["sendorValue"] = WiFi.localIP().toString();
+      myObject["sensorType"] = "Humidity Sensor";
+      float humid = dht.readHumidity();
+      int humidNow = truncf(humid * 10) / 10;
+      myObject["sensorValue"] = humidNow;
+      jsonString = JSON.stringify(myObject);
+      httpPOSTRequest(serverName, jsonString);
+
+      myObject["sendorValue"] = WiFi.localIP().toString();
+      myObject["sensorType"] = "Temperature Sensor";
+      float temp = dht.readTemperature();
+      int tempNow = ((temp - 7) * 1.8) + 32;
+      myObject["sensorValue"] = tempNow;
+      jsonString = JSON.stringify(myObject);
+      httpPOSTRequest(serverName, jsonString);
+
+    } else {
+      Serial.println("WiFi Disconnected");
+    }
+
+    lastTime = millis();
   }
 }
 
